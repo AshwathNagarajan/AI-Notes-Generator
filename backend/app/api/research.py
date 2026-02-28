@@ -3,9 +3,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 import logging
 from datetime import datetime
+import time
 
 from app.api.auth import get_current_user
 from app.models.user import UserResponse
+from app.models.history import HistoryCreate
 from app.core.database import get_collection
 from app.services.research_service import research_service
 
@@ -112,25 +114,37 @@ async def search_research_papers(
             except Exception as e:
                 logger.error(f"Error generating comparative analysis: {str(e)}")
 
-        # Save to database
+        # Save to database - main history collection
         try:
-            search_record = {
-                "user_id": str(current_user.id),
-                "topic": request.topic,
-                "timestamp": datetime.utcnow(),
-                "papers": processed_papers,
-                "comparative_analysis": comparative_analysis,
-                "preferences": {
-                "summarization_type": request.summarization_type,
-                    "summary_mode": request.summary_mode,
-                    "num_papers": request.num_papers
-                }
-            }
-
-            research_collection = get_collection("research_history")
-            await research_collection.insert_one(search_record)
+            history_data = HistoryCreate(
+                user_id=current_user.firebase_uid,
+                feature_type="research",
+                input_data={
+                    "topic": request.topic,
+                    "num_papers": request.num_papers,
+                    "summarization_type": request.summarization_type,
+                    "summary_mode": request.summary_mode
+                },
+                output_data={
+                    "papers_count": len(processed_papers),
+                    "papers": [
+                        {
+                            "title": p.get("title"),
+                            "authors": p.get("authors"),
+                            "year": p.get("year"),
+                            "citations": p.get("citations")
+                        }
+                        for p in processed_papers[:5]  # Store first 5 papers
+                    ],
+                    "has_comparative_analysis": comparative_analysis is not None
+                },
+                processing_time=None
+            )
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_data.dict(by_alias=True))
         except Exception as e:
-            logger.error(f"Error saving to database: {str(e)}")
+            logger.error(f"Error saving to history database: {str(e)}")
 
         return ResearchSearchResponse(
             papers=processed_papers,
@@ -150,10 +164,11 @@ async def get_research_history(
 ):
     """Get user's research search history."""
     try:
-        research_collection = get_collection("research_history")
-        history = await research_collection.find(
-            {"user_id": str(current_user.id)}
-        ).sort("timestamp", -1).to_list(length=100)
+        history_collection = get_collection("history")
+        history = await history_collection.find({
+            "user_id": current_user.firebase_uid,
+            "feature_type": "research"
+        }).sort("created_at", -1).to_list(length=100)
         
         return history
     except Exception as e:

@@ -177,7 +177,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards 
         {error && (
           <div className="mb-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6">
             <div className="flex items-center">
@@ -258,7 +258,7 @@ const Dashboard = () => {
           </div>
 
 
-        </div>
+        </div>*/}
 
         {/* Feature Grid */}
         <div className="mb-12">
@@ -305,7 +305,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Activity 
         { <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -381,7 +381,7 @@ const Dashboard = () => {
               </Link>
             </div>
           )}
-        </div> }
+        </div> }*/}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 import os
 import logging
 from typing import Dict, Any, Optional
-import google.generativeai as genai
 from app.core.config import settings
+from app.services.ai_service import ai_service
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,8 @@ except ImportError:
 
 class ImageService:
     def __init__(self):
-        # Configure Gemini
-        genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # Initialize with Hugging Face AI service
+        self.ai_service = ai_service
         
         # Check Tesseract availability
         self.tesseract_available = False
@@ -28,7 +27,7 @@ class ImageService:
             if os.name == 'nt':  # Windows
                 # Try multiple common installation paths
                 tesseract_paths = [
-                    r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                    r"C:\Tesseract\tesseract.exe",
                     r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
                     os.environ.get('TESSERACT_PATH', '')
                 ]
@@ -98,60 +97,29 @@ class ImageService:
             logger.error(f"Error extracting text from image: {e}")
             raise Exception(f"Failed to extract text from image: {str(e)}")
     
+
     async def summarize_text(self, text: str) -> Dict[str, Any]:
-        """Summarize text using Gemini 2.5 Pro."""
+        """Summarize text using Hugging Face."""
         try:
-            prompt = f"""
-            Please provide a comprehensive summary of the following text. 
-            Include key points, main ideas, and important details.
+            # Use the AI service's summarize_notes method
+            result = await self.ai_service.summarize_notes(
+                text=text,
+                max_length=500,
+                summarization_type='abstractive',
+                summary_mode='narrative'
+            )
             
-            Text to summarize:
-            {text}
+            if not result["success"]:
+                raise ValueError(result.get("error", "Failed to summarize"))
             
-            Please structure your response as:
-            1. Main Summary (2-3 sentences)
-            2. Key Points (bullet points)
-            3. Important Details
-            """
-            
-            response = self.model.generate_content(prompt)
-            
-            if not response.text:
-                raise ValueError("No summary generated")
-            
-            # Parse the response into structured format
-            summary_parts = response.text.split('\n')
+            data = result["data"]
             
             summary_data = {
-                "full_summary": response.text,
-                "main_summary": "",
-                "key_points": [],
-                "important_details": []
+                "full_summary": data.get("summary", ""),
+                "main_summary": data.get("summary", "")[:500],
+                "key_points": data.get("key_points", []),
+                "important_details": data.get("key_points", [])
             }
-            
-            current_section = "main_summary"
-            for line in summary_parts:
-                line = line.strip()
-                if not line:
-                    continue
-                    
-                if "1. Main Summary" in line or "Main Summary" in line:
-                    current_section = "main_summary"
-                elif "2. Key Points" in line or "Key Points" in line:
-                    current_section = "key_points"
-                elif "3. Important Details" in line or "Important Details" in line:
-                    current_section = "important_details"
-                elif line.startswith("•") or line.startswith("-"):
-                    if current_section == "key_points":
-                        summary_data["key_points"].append(line[1:].strip())
-                else:
-                    if current_section == "main_summary":
-                        summary_data["main_summary"] += line + " "
-                    elif current_section == "important_details":
-                        summary_data["important_details"].append(line)
-            
-            # Clean up main summary
-            summary_data["main_summary"] = summary_data["main_summary"].strip()
             
             logger.info(f"Successfully generated summary with {len(summary_data['key_points'])} key points")
             return summary_data
@@ -159,6 +127,7 @@ class ImageService:
         except Exception as e:
             logger.error(f"Error summarizing text: {e}")
             raise Exception(f"Failed to summarize text: {str(e)}")
+
     
     async def process_image(self, image_data: bytes, filename: str) -> Dict[str, Any]:
         """Process image: extract text and generate summary."""

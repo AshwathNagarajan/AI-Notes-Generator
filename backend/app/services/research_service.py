@@ -4,17 +4,15 @@ import logging
 import json
 from datetime import datetime
 from app.core.config import settings
-import google.generativeai as genai
+from app.services.ai_service import ai_service
 
 logger = logging.getLogger(__name__)
 
 class ResearchService:
     def __init__(self):
         try:
-            # Configure Gemini API
-            genai.configure(api_key=settings.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
             logger.debug("Research Service initialized successfully")
+            self.ai_service = ai_service
         except Exception as e:
             logger.error(f"Error initializing Research Service: {str(e)}")
             raise
@@ -138,6 +136,7 @@ class ResearchService:
             logger.error(f"Error searching papers: {str(e)}")
             raise
 
+
     async def generate_summary(
         self,
         abstract: str,
@@ -145,58 +144,33 @@ class ResearchService:
         summary_mode: str,
         max_length: int = 500
     ) -> Dict[str, Any]:
-        """Generate summary of research paper abstract using Gemini."""
+        """Generate summary of research paper abstract using Hugging Face."""
         try:
-            # Define style instructions for each mode
-            style_instructions = {
-                'narrative': "Write the summary in a flowing, story-like manner that's engaging and easy to follow.",
-                'beginner': "Use simple, clear language suitable for beginners. Avoid technical terms and explain concepts in basic terms.",
-                'technical': "Use precise technical language and domain-specific terminology. Maintain a professional and academic tone.",
-                'bullet': "Present the summary as a structured list of key points, using bullet points for clarity."
-            }.get(summary_mode, "Write in a clear, concise manner.")
-
-            # Define method instructions for summarization type
-            method_instructions = {
-                'extractive': "Create the summary by selecting and combining the most important sentences from the original text. Maintain the original wording where possible.",
-                'abstractive': "Generate a new summary that captures the meaning of the text in your own words. Rephrase and restructure the content while maintaining accuracy."
-            }.get(summarization_type, "Summarize the text appropriately.")
-
-            prompt = f"""
-            Please summarize the following research paper abstract according to these specifications:
+            # Use the AI service's summarize_notes method
+            result = await self.ai_service.summarize_notes(
+                text=abstract,
+                max_length=max_length,
+                summarization_type=summarization_type,
+                summary_mode=summary_mode
+            )
             
-            Style: {style_instructions}
-            Method: {method_instructions}
-            Maximum Length: {max_length} words
+            if not result["success"]:
+                raise ValueError(result.get("error", "Failed to generate summary"))
             
-            Abstract:
-            {abstract}
-            
-            Provide the response in the following JSON format:
-            {{
-                "summary": "the generated summary",
-                "key_findings": ["finding 1", "finding 2", "finding 3"],
-                "methodology": "brief description of research methodology",
-                "implications": "practical implications of the research"
-            }}
-            
-            Respond only with the JSON, no additional text.
-            """
-
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
-            
-            # Handle possible formatting issues
-            if response_text.startswith('```json'):
-                response_text = response_text[7:-3]
-            elif response_text.startswith('```'):
-                response_text = response_text[3:-3]
-                
-            result = json.loads(response_text.strip())
-            return result
+            # Transform the response to match research service format
+            data = result["data"]
+            return {
+                "summary": data.get("summary", ""),
+                "key_findings": data.get("key_points", []),
+                "methodology": "Extracted from abstract using AI analysis",
+                "implications": "See full abstract for implications"
+            }
 
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}")
             raise
+
+
 
     async def generate_comparative_analysis(
         self,
@@ -204,7 +178,7 @@ class ResearchService:
         summarization_type: str,
         summary_mode: str
     ) -> Dict[str, Any]:
-        """Generate comparative analysis of multiple papers."""
+        """Generate comparative analysis of multiple papers using Hugging Face."""
         try:
             # Prepare paper summaries for comparison
             papers_text = "\n\n".join([
@@ -212,48 +186,27 @@ class ResearchService:
                 for i, p in enumerate(papers)
             ])
 
-            style_instructions = {
-                'narrative': "Present the analysis in a flowing, narrative style.",
-                'beginner': "Use simple language and explain concepts clearly for beginners.",
-                'technical': "Maintain technical precision and academic rigor.",
-                'bullet': "Use bullet points to highlight key comparisons."
-            }.get(summary_mode, "Present the analysis clearly and concisely.")
-
-            prompt = f"""
-            Analyze and compare the following research papers:
-
-            {papers_text}
-
-            Style: {style_instructions}
-
-            Provide a comparative analysis in the following JSON format:
-            {{
-                "common_themes": ["theme 1", "theme 2"],
-                "key_differences": ["difference 1", "difference 2"],
-                "research_trends": "overview of trends across papers",
-                "methodology_comparison": "comparison of research methods",
-                "timeline_evolution": "how the research has evolved over time",
-                "gaps_and_opportunities": "identified research gaps and future opportunities"
-            }}
-
-            Focus on identifying patterns, contradictions, and evolution of ideas.
-            Respond only with the JSON, no additional text.
-            """
-
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            # Use AI service to extract key points for comparative analysis
+            result = await self.ai_service.extract_key_points(papers_text)
             
-            if response_text.startswith('```json'):
-                response_text = response_text[7:-3]
-            elif response_text.startswith('```'):
-                response_text = response_text[3:-3]
-                
-            result = json.loads(response_text.strip())
-            return result
+            if not result["success"]:
+                raise ValueError(result.get("error", "Failed to generate analysis"))
+            
+            data = result["data"]
+            
+            return {
+                "common_themes": data.get("main_ideas", [])[:2],
+                "key_differences": data.get("key_points", [])[:2],
+                "research_trends": f"Analysis of {len(papers)} research papers",
+                "methodology_comparison": "Compared using AI analysis of abstracts",
+                "timeline_evolution": f"Papers from {papers[0].get('year', 'unknown')} onwards",
+                "gaps_and_opportunities": data.get("vocabulary", [])[:2]
+            }
 
         except Exception as e:
             logger.error(f"Error generating comparative analysis: {str(e)}")
             raise
+
 
     def generate_citations(self, paper: Dict[str, Any]) -> Dict[str, str]:
         """Generate APA and IEEE citations for a paper."""

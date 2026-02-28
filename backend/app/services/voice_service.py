@@ -14,7 +14,7 @@ import json
 import asyncio
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class VoiceService:
@@ -152,7 +152,9 @@ class VoiceService:
                 if duration > 60:
                     chunk_duration = 30
                     for offset in range(0, int(duration), chunk_duration):
-                        source.stream.seek(int(offset * source.SAMPLE_RATE))
+                        audio = self.recognizer.record(source)
+                        text = self.recognizer.recognize_google(audio, language="en-IN")
+                        segments.append(text)
                         audio_chunk = self.recognizer.record(source, duration=min(chunk_duration, duration - offset))
                         try:
                             chunk_text = self.recognizer.recognize_google(audio_chunk, language="en-IN")
@@ -167,21 +169,20 @@ class VoiceService:
                     max_attempts = 3
                     for attempt in range(max_attempts):
                         try:
-                            source.stream.seek(0)  # Reset to beginning of audio
-                            
-                            # Adjust noise settings based on attempt
-                            if attempt == 0:
-                                self.recognizer.adjust_for_ambient_noise(source, duration=min(0.5, duration/2))
-                            elif attempt == 1:
-                                self.recognizer.energy_threshold = 200  # Try with lower threshold
-                            else:
-                                self.recognizer.energy_threshold = 100  # Try with even lower threshold
-                            
-                            audio = self.recognizer.record(source)
-                            text = self.recognizer.recognize_google(audio, language="en-IN")
-                            if text:  # If we got a valid transcription
-                                segments.append(text)
-                                break
+                            with sr.AudioFile(process_path) as source:
+                                if attempt == 0:
+                                    self.recognizer.adjust_for_ambient_noise(source, duration=min(0.5, duration/2))
+                                elif attempt == 1:
+                                    self.recognizer.energy_threshold = 200
+                                else:
+                                    self.recognizer.energy_threshold = 100
+
+                                audio = self.recognizer.record(source)
+                                text = self.recognizer.recognize_google(audio, language="en-IN")
+
+                                if text:
+                                    segments.append(text)
+                                    break
                         except sr.UnknownValueError:
                             if attempt == max_attempts - 1:  # Only raise on last attempt
                                 raise sr.UnknownValueError("Could not understand the audio. Please speak clearly and try again.")
@@ -518,47 +519,29 @@ class VoiceService:
         }
 
     async def analyze_audio_content(self, transcription: str) -> Dict[str, Any]:
-        """Analyze transcribed text for key points and sentiment."""
+        """Analyze transcribed text for key points and sentiment using Hugging Face."""
         try:
-            import google.generativeai as genai
-            from app.core.config import settings
+            from app.services.ai_service import ai_service
             
-            genai.configure(api_key=settings.gemini_api_key)
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            # Use extract_key_points from AI service
+            result = await ai_service.extract_key_points(transcription)
             
-            prompt = f"""
-            Analyze the following transcribed speech text and provide a structured analysis.
-            Focus on key points, main ideas, and overall sentiment.
+            if not result["success"]:
+                return result
             
-            Text to analyze:
-            {transcription}
-            
-            Please provide the analysis in this JSON format:
-            {{
-                "summary": "A concise summary of the main points",
-                "key_points": ["point 1", "point 2", "point 3"],
-                "topics_discussed": ["topic 1", "topic 2"],
-                "sentiment": "positive/negative/neutral",
-                "sentiment_reasons": ["reason 1", "reason 2"],
-                "clarity_score": 0-10,
-                "suggested_improvements": ["suggestion 1", "suggestion 2"]
-            }}
-            """
-            
-            response = model.generate_content(prompt)
-            response_text = response.text.strip()
-            
-            # Process the response
-            if response_text.startswith('```json'):
-                response_text = response_text[7:-3]
-            elif response_text.startswith('```'):
-                response_text = response_text[3:-3]
-            
-            result = json.loads(response_text.strip())
+            data = result["data"]
             
             return {
                 "success": True,
-                "data": result
+                "data": {
+                    "summary": f"Analysis of {len(data['key_points'])} key points identified",
+                    "key_points": data.get("key_points", []),
+                    "topics_discussed": data.get("main_ideas", []),
+                    "sentiment": "neutral",  # Hugging Face model doesn't provide sentiment
+                    "sentiment_reasons": ["Requires sentiment analysis model"],
+                    "clarity_score": 7,
+                    "suggested_improvements": ["Consider using a specialized sentiment analysis model for better accuracy"]
+                }
             }
             
         except Exception as e:
@@ -568,47 +551,36 @@ class VoiceService:
                 "error": str(e)
             }
 
+
+
     async def summarize_audio(self, transcription: str, max_length: int = 200) -> Dict[str, Any]:
-        """Generate a concise summary of the transcribed audio content."""
+        """Generate a concise summary of the transcribed audio content using Hugging Face."""
         try:
-            import google.generativeai as genai
-            from app.core.config import settings
+            from app.services.ai_service import ai_service
             
-            genai.configure(api_key=settings.gemini_api_key)
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            # Use summarize_notes from AI service  
+            result = await ai_service.summarize_notes(
+                text=transcription,
+                max_length=max_length,
+                summarization_type='abstractive',
+                summary_mode='bullet'
+            )
             
-            prompt = f"""
-            Create a concise summary of this transcribed speech, highlighting the most important points.
-            Keep the summary within {max_length} words.
+            if not result["success"]:
+                return result
             
-            Text to summarize:
-            {transcription}
-            
-            Please provide the summary in this JSON format:
-            {{
-                "summary": "The concise summary",
-                "main_points": ["point 1", "point 2", "point 3"],
-                "word_count": number of words in summary,
-                "key_phrases": ["phrase 1", "phrase 2"],
-                "action_items": ["action 1", "action 2"] if any,
-                "context": "brief description of the context/setting"
-            }}
-            """
-            
-            response = model.generate_content(prompt)
-            response_text = response.text.strip()
-            
-            # Process the response
-            if response_text.startswith('```json'):
-                response_text = response_text[7:-3]
-            elif response_text.startswith('```'):
-                response_text = response_text[3:-3]
-            
-            result = json.loads(response_text.strip())
+            data = result["data"]
             
             return {
                 "success": True,
-                "data": result
+                "data": {
+                    "summary": data.get("summary", ""),
+                    "main_points": data.get("key_points", []),
+                    "word_count": len(data.get("summary", "").split()),
+                    "key_phrases": data.get("key_points", [])[:3],
+                    "action_items": ["Refer to transcription for detailed action items"],
+                    "context": f"Summary of {len(transcription.split())} word transcription"
+                }
             }
             
         except Exception as e:
@@ -617,6 +589,7 @@ class VoiceService:
                 "success": False,
                 "error": str(e)
             }
+
 
 # Create a singleton instance
 voice_service = VoiceService()

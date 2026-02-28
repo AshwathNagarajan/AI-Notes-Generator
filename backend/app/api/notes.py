@@ -87,20 +87,30 @@ async def summarize_notes(
         
         processing_time = time.time() - start_time
         
-        # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="notes",
-            input_data={
-                "text": request.text[:1000],  # Store first 1000 chars
-                "max_length": request.max_length
-            },
-            output_data=result["data"],
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        # Save to history with better error handling
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "notes",
+                "input_data": {
+                    "text": request.text[:1000],  # Store first 1000 chars
+                    "max_length": request.max_length
+                },
+                "output_data": result["data"],
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            logger.info(f"History data prepared: user_id={current_user.firebase_uid}, feature_type=notes")
+            history_collection = get_collection("history")
+            insert_result = await history_collection.insert_one(history_doc)
+            logger.info(f"✅ History saved successfully with ID: {insert_result.inserted_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save to history: {e}", exc_info=True)
         
         return NotesSummarizeResponse(
             summary=result["data"]["summary"],
@@ -161,18 +171,27 @@ async def extract_key_points(
         processing_time = time.time() - start_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="notes_extract",
-            input_data={
-                "text": request.text[:1000]  # Store first 1000 chars
-            },
-            output_data=result["data"],
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "notes",
+                "input_data": {
+                    "text": request.text[:1000]  # Store first 1000 chars
+                },
+                "output_data": result["data"],
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Extract history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save extract history: {e}", exc_info=True)
         
         return NotesExtractResponse(
             key_points=result["data"]["key_points"],

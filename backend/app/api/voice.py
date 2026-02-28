@@ -32,7 +32,7 @@ from app.core.config import settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 router = APIRouter()
 
@@ -201,20 +201,29 @@ async def transcribe_audio_file(
         logger.debug(f"Transcription completed in {processing_time:.2f} seconds")
             
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="voice",
-            input_data={
-                "filename": file.filename,
-                "file_size": file_size,
-                "file_format": file_extension
-            },
-            output_data=result["data"],
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice",
+                "input_data": {
+                    "filename": file.filename,
+                    "file_size": file_size,
+                    "file_format": file_extension
+                },
+                "output_data": result["data"],
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Voice history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save voice history: {e}", exc_info=True)
         
         # Add processing time to result
         result["data"]["processing_time"] = processing_time
@@ -265,18 +274,27 @@ async def transcribe_microphone(
         processing_time = time.time() - start_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="voice_microphone",
-            input_data={
-                "duration": request.duration
-            },
-            output_data=result["data"],
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice",
+                "input_data": {
+                    "duration": request.duration
+                },
+                "output_data": result["data"],
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Voice microphone history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save voice history: {e}", exc_info=True)
         
         return VoiceTranscribeResponse(
             transcription=result["data"]["transcription"],
@@ -333,22 +351,31 @@ async def summarize_transcription(
         result["data"]["processing_time"] = processing_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="voice_summary",
-            input_data={
-                "transcription_length": len(request.transcription.split()),
-                "max_length": request.max_length
-            },
-            output_data={
-                "summary_length": len(result["data"]["summary"].split()),
-                "main_points_count": len(result["data"]["main_points"])
-            },
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice",
+                "input_data": {
+                    "transcription_length": len(request.transcription.split()),
+                    "max_length": request.max_length
+                },
+                "output_data": {
+                    "summary_length": len(result["data"]["summary"].split()),
+                    "main_points_count": len(result["data"]["main_points"])
+                },
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Voice summary history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save voice summary history: {e}", exc_info=True)
         
         return result["data"]
         
@@ -392,22 +419,31 @@ async def analyze_transcription(
         result["data"]["processing_time"] = processing_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="voice_analysis",
-            input_data={
-                "transcription_length": len(request.transcription.split())
-            },
-            output_data={
-                "sentiment": result["data"]["sentiment"],
-                "clarity_score": result["data"]["clarity_score"],
-                "topics_count": len(result["data"]["topics_discussed"])
-            },
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice",
+                "input_data": {
+                    "transcription_length": len(request.transcription.split())
+                },
+                "output_data": {
+                    "sentiment": result["data"]["sentiment"],
+                    "clarity_score": result["data"]["clarity_score"],
+                    "topics_count": len(result["data"]["topics_discussed"])
+                },
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Voice analysis history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save voice analysis history: {e}", exc_info=True)
         
         return result["data"]
         

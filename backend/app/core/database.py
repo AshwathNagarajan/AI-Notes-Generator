@@ -18,6 +18,7 @@ class InMemoryDB:
         }
     
     def get_collection(self, name: str):
+        logger.info(f"Using DB client: {db.client is not None}, Using in-memory: {db.in_memory_db is not None}")
         if name not in self.collections:
             self.collections[name] = {}
         return InMemoryCollection(self.collections[name])

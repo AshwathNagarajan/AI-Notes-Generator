@@ -61,6 +61,12 @@ async def get_user_history(
         items = []
         for item in history_items:
             try:
+                # Use created_at if available, otherwise use ObjectId timestamp
+                if "created_at" in item:
+                    created_at = item["created_at"]
+                else:
+                    created_at = datetime.fromtimestamp(item["_id"].generation_time.timestamp())
+                
                 history_item = HistoryItem(
                     id=str(item["_id"]),
                     user_id=item["user_id"],
@@ -69,7 +75,7 @@ async def get_user_history(
                     output_data=item["output_data"],
                     processing_time=item.get("processing_time"),
                     status=item.get("status", "completed"),
-                    created_at=item["created_at"]
+                    created_at=created_at
                 )
                 items.append(history_item)
             except Exception as e:
@@ -93,17 +99,28 @@ async def get_history_summary(
         history_collection = get_collection("history")
         logger.info(f"Getting history summary for user: {current_user.firebase_uid}, days: {days}")
         
-        # Calculate date range
+        # Get all history items for user (fallback for items without created_at)
+        query = {"user_id": current_user.firebase_uid}
+        
+        history_items = await history_collection.find(query).sort("_id", -1).to_list(length=None)
+        
+        # Filter by date range if created_at exists
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # Get history items in date range - use firebase_uid instead of id
-        query = {
-            "user_id": current_user.firebase_uid,
-            "created_at": {"$gte": start_date, "$lte": end_date}
-        }
+        filtered_items = []
+        for item in history_items:
+            # Use created_at if available, otherwise use ObjectId timestamp
+            if "created_at" in item:
+                item_date = item["created_at"]
+            else:
+                # Extract timestamp from ObjectId (first 4 bytes are timestamp)
+                item_date = datetime.fromtimestamp(item["_id"].generation_time.timestamp())
+            
+            if start_date <= item_date <= end_date:
+                filtered_items.append(item)
         
-        history_items = await history_collection.find(query).sort("created_at", -1).to_list(length=None)
+        history_items = filtered_items
         logger.info(f"Found {len(history_items)} history items")
         
         # Calculate feature breakdown
@@ -125,6 +142,12 @@ async def get_history_summary(
         recent_items = []
         for item in history_items[:10]:
             try:
+                # Use created_at if available, otherwise use ObjectId timestamp
+                if "created_at" in item:
+                    created_at = item["created_at"]
+                else:
+                    created_at = datetime.fromtimestamp(item["_id"].generation_time.timestamp())
+                
                 history_item = HistoryItem(
                     id=str(item["_id"]),
                     user_id=item["user_id"],
@@ -133,7 +156,7 @@ async def get_history_summary(
                     output_data=item["output_data"],
                     processing_time=item.get("processing_time"),
                     status=item.get("status", "completed"),
-                    created_at=item["created_at"]
+                    created_at=created_at
                 )
                 recent_items.append(history_item)
             except Exception as e:
@@ -177,25 +200,37 @@ async def get_feature_history(
         
         # Get history items for specific feature
         query = {
-            "user_id": str(current_user.id),
+            "user_id": current_user.firebase_uid,
             "feature_type": feature_type
         }
         
-        cursor = history_collection.find(query).sort("created_at", -1).limit(limit)
+        cursor = history_collection.find(query).sort("_id", -1).limit(limit)
         history_items = await cursor.to_list(length=limit)
         
         # Convert to response format
         items = []
         for item in history_items:
-            items.append(HistoryItem(
-                id=str(item["_id"]),
-                feature_type=item["feature_type"],
-                input_data=item["input_data"],
-                output_data=item["output_data"],
-                processing_time=item.get("processing_time"),
-                status=item["status"],
-                created_at=item["created_at"]
-            ))
+            try:
+                # Use created_at if available, otherwise use ObjectId timestamp
+                if "created_at" in item:
+                    created_at = item["created_at"]
+                else:
+                    created_at = datetime.fromtimestamp(item["_id"].generation_time.timestamp())
+                
+                history_item = HistoryItem(
+                    id=str(item["_id"]),
+                    user_id=item["user_id"],
+                    feature_type=item["feature_type"],
+                    input_data=item["input_data"],
+                    output_data=item["output_data"],
+                    processing_time=item.get("processing_time"),
+                    status=item.get("status", "completed"),
+                    created_at=created_at
+                )
+                items.append(history_item)
+            except Exception as e:
+                logger.error(f"Error converting feature history item: {e}, item: {item}")
+                continue
         
         return {
             "feature_type": feature_type,
@@ -211,12 +246,14 @@ async def get_feature_history(
         )
 
 @router.post("/seed-test", tags=["Debug"], include_in_schema=False)
-async def seed_test_history(request: Request):
-    """Temporary endpoint to seed a test history item for debugging (local dev only)."""
+async def seed_test_history(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Seed a test history item for the current user (local dev only)."""
     try:
         history_collection = get_collection("history")
         test_item = {
-            "user_id": "test-user-id",
+            "user_id": current_user.firebase_uid,
             "feature_type": "eli5",
             "input_data": {"topic": "Test Topic", "complexity_level": "easy"},
             "output_data": {"original_topic": "Test Topic", "key_concepts_count": 2, "examples_count": 1, "analogies_count": 1},
@@ -225,20 +262,22 @@ async def seed_test_history(request: Request):
             "created_at": datetime.utcnow()
         }
         result = await history_collection.insert_one(test_item)
-        return {"message": "Seeded test history item", "id": str(result.inserted_id)}
+        return {"message": "Seeded test history item for current user", "id": str(result.inserted_id)}
     except Exception as e:
         return {"error": str(e)}
 
 @router.post("/seed-dashboard-test", tags=["Debug"], include_in_schema=False)
-async def seed_dashboard_test_data(request: Request):
-    """Seed comprehensive test data for dashboard statistics testing."""
+async def seed_dashboard_test_data(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Seed comprehensive test data for the current user (local dev only)."""
     try:
         history_collection = get_collection("history")
         
-        # Create test data for different features
+        # Create test data for different features using current user's ID
         test_data = [
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "eli5",
                 "input_data": {"topic": "Machine Learning", "complexity_level": "easy"},
                 "output_data": {"original_topic": "Machine Learning", "key_concepts_count": 3, "examples_count": 2, "analogies_count": 2},
@@ -247,7 +286,7 @@ async def seed_dashboard_test_data(request: Request):
                 "created_at": datetime.utcnow() - timedelta(hours=1)
             },
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "notes",
                 "input_data": {"text": "Sample text for summarization", "max_length": 200},
                 "output_data": {"summary": "Summarized text", "key_points": ["point1", "point2"], "word_count": 50},
@@ -256,7 +295,7 @@ async def seed_dashboard_test_data(request: Request):
                 "created_at": datetime.utcnow() - timedelta(hours=2)
             },
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "quiz",
                 "input_data": {"text": "Sample quiz content", "num_questions": 5},
                 "output_data": {"total_questions": 5, "questions_count": 5},
@@ -265,7 +304,7 @@ async def seed_dashboard_test_data(request: Request):
                 "created_at": datetime.utcnow() - timedelta(hours=3)
             },
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "pdf",
                 "input_data": {"filename": "test.pdf", "file_size": 1024000, "total_pages": 5},
                 "output_data": {"word_count": 1500, "extraction_method": "pymupdf"},
@@ -274,7 +313,7 @@ async def seed_dashboard_test_data(request: Request):
                 "created_at": datetime.utcnow() - timedelta(hours=4)
             },
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "voice",
                 "input_data": {"filename": "audio.mp3", "file_size": 512000, "file_format": "mp3"},
                 "output_data": {"transcription": "Sample transcription", "confidence": 0.95, "word_count": 25},
@@ -283,13 +322,40 @@ async def seed_dashboard_test_data(request: Request):
                 "created_at": datetime.utcnow() - timedelta(hours=5)
             },
             {
-                "user_id": "test-user-id",
+                "user_id": current_user.firebase_uid,
                 "feature_type": "mindmap",
                 "input_data": {"topic": "Artificial Intelligence", "complexity": "intermediate"},
                 "output_data": {"topic": "AI", "branches_count": 4, "subtopics_count": 12},
                 "processing_time": 3.5,
                 "status": "completed",
                 "created_at": datetime.utcnow() - timedelta(hours=6)
+            },
+            {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "image",
+                "input_data": {"filename": "diagram.png", "file_size": 1048576},
+                "output_data": {"extracted_text": "Cell structure diagram", "word_count": 28},
+                "processing_time": 1.67,
+                "status": "completed",
+                "created_at": datetime.utcnow() - timedelta(hours=7)
+            },
+            {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "research",
+                "input_data": {"topic": "Machine Learning", "num_papers": 5},
+                "output_data": {"papers_count": 5, "has_comparative_analysis": True},
+                "processing_time": 5.89,
+                "status": "completed",
+                "created_at": datetime.utcnow() - timedelta(hours=8)
+            },
+            {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice_emotion",
+                "input_data": {"filename": "audio.wav"},
+                "output_data": {"primary_emotion": "happy", "confidence": 0.87},
+                "processing_time": 2.15,
+                "status": "completed",
+                "created_at": datetime.utcnow() - timedelta(hours=9)
             }
         ]
         
@@ -297,8 +363,9 @@ async def seed_dashboard_test_data(request: Request):
         result = await history_collection.insert_many(test_data)
         
         return {
-            "message": f"Seeded {len(test_data)} dashboard test items", 
-            "inserted_count": len(result.inserted_ids)
+            "message": f"✅ Seeded {len(test_data)} history items for your account", 
+            "inserted_count": len(result.inserted_ids),
+            "user_id": current_user.firebase_uid
         }
     except Exception as e:
         return {"error": str(e)}
@@ -394,7 +461,7 @@ async def delete_history_item(
         # Verify the item belongs to the user
         item = await history_collection.find_one({
             "_id": ObjectId(history_id),
-            "user_id": str(current_user.id)
+            "user_id": current_user.firebase_uid
         })
         
         if not item:
@@ -427,7 +494,7 @@ async def clear_history(
         history_collection = get_collection("history")
         
         # Build query
-        query = {"user_id": str(current_user.id)}
+        query = {"user_id": current_user.firebase_uid}
         if feature_type:
             query["feature_type"] = feature_type
         

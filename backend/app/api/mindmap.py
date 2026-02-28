@@ -67,22 +67,31 @@ async def create_mindmap(
         processing_time = time.time() - start_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="mindmap",
-            input_data={
-                "topic": request.topic,
-                "subtopics": request.subtopics or []
-            },
-            output_data={
-                "topic": result["data"]["topic"],
-                "branches_count": len(result["data"]["branches"])
-            },
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "mindmap",
+                "input_data": {
+                    "topic": request.topic,
+                    "subtopics": request.subtopics or []
+                },
+                "output_data": {
+                    "topic": result["data"]["topic"],
+                    "branches_count": len(result["data"]["branches"])
+                },
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ MindMap history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save mindmap history: {e}", exc_info=True)
         
         # Convert branches to response format
         branches = []

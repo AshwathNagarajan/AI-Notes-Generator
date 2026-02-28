@@ -35,22 +35,31 @@ async def analyze_voice_emotion_endpoint(
         processing_time = time.time() - start_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="voice_emotion",
-            input_data={
-                "filename": file.filename,
-                "transcription_length": len(transcribe_result["transcription"].split())
-            },
-            output_data={
-                "primary_emotion": emotion_result["data"]["primary_emotion"],
-                "emotion_scores": emotion_result["data"]["emotion_scores"]
-            },
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "voice_emotion",
+                "input_data": {
+                    "filename": file.filename,
+                    "transcription_length": len(transcribe_result["transcription"].split())
+                },
+                "output_data": {
+                    "primary_emotion": emotion_result["data"]["primary_emotion"],
+                    "emotion_scores": emotion_result["data"]["emotion_scores"]
+                },
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ Voice emotion analysis history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save voice emotion history: {e}", exc_info=True)
         
         # Add processing time to result
         emotion_result["data"]["processing_time"] = processing_time

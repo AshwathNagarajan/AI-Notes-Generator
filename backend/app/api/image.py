@@ -8,6 +8,7 @@ from bson import ObjectId
 
 from app.models.image import ImageProcessResponse, ImageHistoryItem
 from app.models.user import UserResponse
+from app.models.history import HistoryCreate
 from app.services.image_service import ImageService
 from app.core.database import get_collection
 from app.api.auth import get_current_user
@@ -62,22 +63,25 @@ async def process_image(
         # Calculate processing time
         processing_time = time.time() - start_time
         
-        # Create history item
-        history_item = ImageHistoryItem(
+        # Save to main history collection
+        history_data = HistoryCreate(
             user_id=current_user.firebase_uid,
-            filename=file.filename,
-            extracted_text=result["extracted_text"],
-            summary=result["summary"],
-            word_count=result["word_count"],
-            character_count=result["character_count"],
-            processing_time=processing_time,
-            status="completed",
-            created_at=datetime.utcnow()
+            feature_type="image",
+            input_data={
+                "filename": file.filename,
+                "file_size": len(image_data)
+            },
+            output_data={
+                "extracted_text": result["extracted_text"][:500],  # Store first 500 chars
+                "summary": result["summary"],
+                "word_count": result["word_count"],
+                "character_count": result["character_count"]
+            },
+            processing_time=processing_time
         )
         
-        # Store in database
-        image_collection = get_collection("image_history")
-        db_result = await image_collection.insert_one(history_item.dict())
+        history_collection = get_collection("history")
+        db_result = await history_collection.insert_one(history_data.dict(by_alias=True))
         
         # Create response
         response = ImageProcessResponse(
@@ -90,7 +94,7 @@ async def process_image(
             character_count=result["character_count"],
             processing_time=processing_time,
             status="completed",
-            created_at=history_item.created_at
+            created_at=datetime.utcnow()
         )
         
         logger.info(f"Successfully processed image for user {current_user.firebase_uid}")

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { History as HistoryIcon, Clock, Activity, Trash2, Filter, ChevronDown, Eye, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { History as HistoryIcon, Trash2, Eye, X, RefreshCw } from 'lucide-react';
 import { historyService } from '../services/historyService';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,63 +14,100 @@ const HistoryPage = () => {
   const [days, setDays] = useState(30);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadHistory();
-      loadSummary();
-    }
-  }, [filterType, days, user]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async (feature_type = '') => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await historyService.getHistory({ feature_type: filterType });
-      setHistory(data);
+      console.log('Loading history with filter:', feature_type || 'all');
+      const params = {};
+      if (feature_type) {
+        params.feature_type = feature_type;
+      }
+      const data = await historyService.getHistory(params);
+      console.log('History data received:', data);
+      console.log('Data type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
+      console.log('Data length:', data?.length);
+      console.log('First item:', data?.[0]);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setHistory(data);
+        console.log('✅ History set with', data.length, 'items');
+      } else {
+        console.log('⚠️ No data or empty array');
+        setHistory([]);
+      }
     } catch (error) {
-      setError(error?.response?.data?.detail || error.message || 'Unknown error');
+      console.error('Full error object:', error);
+      const errorMsg = error?.response?.data?.detail || error.message || 'Unknown error';
+      setError(errorMsg);
       setHistory([]);
-      console.error('Error loading history:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async (daysValue = 30) => {
     try {
-      const data = await historyService.getSummary(days);
+      console.log('Loading summary for days:', daysValue);
+      const data = await historyService.getSummary(daysValue);
+      console.log('Summary data received:', data);
       setSummary(data);
     } catch (error) {
       console.error('Error loading summary:', error);
+      setSummary(null);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      console.log('User logged in, loading history. User ID:', user.id || user.firebase_uid);
+      loadHistory(filterType);
+      loadSummary(days);
+    } else {
+      console.log('No user logged in');
+    }
+  }, [filterType, days, user, loadHistory, loadSummary]);
 
   const handleClearHistory = async () => {
     if (window.confirm('Are you sure you want to clear your history?')) {
       try {
+        console.log('Clearing history for feature type:', filterType || 'all');
         await historyService.clearHistory(filterType);
-        await loadHistory();
-        await loadSummary();
+        console.log('History cleared, reloading...');
+        await loadHistory(filterType);
+        await loadSummary(days);
       } catch (error) {
         console.error('Error clearing history:', error);
+        setError('Failed to clear history');
       }
     }
   };
 
   const handleDeleteItem = async (id) => {
     try {
+      console.log('Deleting history item:', id);
       await historyService.deleteHistoryItem(id);
-      await loadHistory();
-      await loadSummary();
+      console.log('Item deleted, reloading...');
+      await loadHistory(filterType);
+      await loadSummary(days);
     } catch (error) {
       console.error('Error deleting history item:', error);
+      setError('Failed to delete history item');
     }
   };
 
   const handleViewDetails = (item) => {
     setSelectedItem(item);
     setShowDetails(true);
+  };
+
+  const handleRefresh = async () => {
+    console.log('Manual refresh triggered');
+    await loadHistory(filterType);
+    await loadSummary(days);
   };
 
   const renderHistoryContent = (item) => {
@@ -225,6 +262,111 @@ const HistoryPage = () => {
           </div>
         );
 
+      case 'image':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Image File:</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">{input_data.filename}</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Extracted Text:</h4>
+              <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                  {output_data.extracted_text || 'No text extracted'}
+                </p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Summary:</h4>
+              <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">{output_data.summary || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'research':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Topic Searched:</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">{input_data.topic}</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Papers Found:</h4>
+              <div className="bg-teal-50 dark:bg-teal-900/20 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                  {output_data.papers_count || 0} papers analyzed
+                </p>
+              </div>
+            </div>
+            {output_data.papers && output_data.papers.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Sample Papers:</h4>
+                <ul className="space-y-2">
+                  {output_data.papers.slice(0, 3).map((paper, index) => (
+                    <li key={index} className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                      <strong>{paper.title}</strong> - {paper.year}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'voice_emotion':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Audio File:</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">{input_data.filename}</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Primary Emotion:</h4>
+              <div className="bg-rose-50 dark:bg-rose-900/20 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold uppercase">
+                  {output_data.primary_emotion || 'Unknown'} ({((output_data.confidence || 0) * 100).toFixed(1)}%)
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'voice':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Audio File:</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">{input_data.filename}</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Transcription:</h4>
+              <div className="bg-cyan-50 dark:bg-cyan-900/20 p-3 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                  {output_data.transcription || 'No transcription'}
+                </p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Statistics:</h4>
+              <div className="bg-cyan-50 dark:bg-cyan-900/20 p-3 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                <p>Word Count: {output_data.word_count || 0}</p>
+                <p>Confidence: {((output_data.confidence || 0) * 100).toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="space-y-4">
@@ -282,25 +424,57 @@ const HistoryPage = () => {
         </div>
       )}
 
+      {/* Debug Panel */}
+      <div className="card p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700">
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 hover:underline"
+        >
+          {showDebug ? '▼' : '▶'} Debug Info
+        </button>
+        {showDebug && (
+          <div className="mt-4 space-y-2 text-sm text-yellow-700 dark:text-yellow-300 font-mono">
+            <p>User: {user ? `✅ ${user.email}` : '❌ Not logged in'}</p>
+            <p>Loading: {isLoading ? '⏳ Yes' : '✅ No'}</p>
+            <p>Error: {error ? `❌ ${error}` : '✅ None'}</p>
+            <p>History Count: <strong>{history.length}</strong> items</p>
+            <p>Summary: {summary ? `✅ ${summary.total_items} items` : '❌ No summary'}</p>
+            <p>Filter: <strong>{filterType || 'all'}</strong></p>
+            <p>Days: <strong>{days}</strong></p>
+            {history.length > 0 && (
+              <>
+                <p className="mt-2 border-t border-yellow-300 pt-2">Sample Item:</p>
+                <pre className="bg-gray-900 text-green-400 p-2 rounded overflow-auto text-xs">
+                  {JSON.stringify(history[0], null, 2).substring(0, 300)}...
+                </pre>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="card">
         <div className="p-4 border-b dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <select
-                className="form-select"
+                className="form-select bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
                 <option value="">All Activities</option>
-                <option value="voice">Voice</option>
                 <option value="notes">Notes</option>
+                <option value="voice">Voice</option>
+                <option value="voice_emotion">Voice Emotion</option>
+                <option value="pdf">PDF</option>
                 <option value="quiz">Quiz</option>
                 <option value="mindmap">Mind Map</option>
-                <option value="pdf">PDF</option>
                 <option value="eli5">ELI5</option>
+                <option value="image">Image</option>
+                <option value="research">Research</option>
               </select>
               <select
-                className="form-select"
+                className="form-select bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition"
                 value={days}
                 onChange={(e) => setDays(parseInt(e.target.value))}
               >
@@ -309,6 +483,14 @@ const HistoryPage = () => {
                 <option value="90">Last 90 days</option>
               </select>
             </div>
+            <button
+              onClick={handleRefresh}
+              className="btn-primary flex items-center mr-2"
+              title="Refresh history data"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </button>
             <button
               onClick={handleClearHistory}
               className="btn-error flex items-center"
@@ -347,44 +529,54 @@ const HistoryPage = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                          {item.feature_type.charAt(0).toUpperCase() + item.feature_type.slice(1)}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {format(new Date(item.created_at), 'PPpp')}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {item.processing_time ? `${item.processing_time.toFixed(2)}s` : 'N/A'}
-                        </span>
-                        <button
-                          onClick={() => handleViewDetails(item)}
-                          className="text-blue-600 hover:text-blue-700 p-1"
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-red-600 hover:text-red-700 p-1"
-                          title="Delete item"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+              {history && history.length > 0 ? (
+                history.map((item, index) => (
+                  <div
+                    key={item.id || index}
+                    className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                            {item.feature_type && typeof item.feature_type === 'string'
+                              ? item.feature_type.charAt(0).toUpperCase() + item.feature_type.slice(1)
+                              : 'Unknown'}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {item.created_at
+                              ? format(new Date(item.created_at), 'PPpp')
+                              : 'Unknown date'}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {item.processing_time ? `${item.processing_time.toFixed(2)}s` : 'N/A'}
+                          </span>
+                          <button
+                            onClick={() => handleViewDetails(item)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="text-red-600 hover:text-red-700 p-1"
+                            title="Delete item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-600">
+                  <p>No items to display</p>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

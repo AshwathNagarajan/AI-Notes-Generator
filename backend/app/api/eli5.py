@@ -67,24 +67,33 @@ async def simplify_topic(
         processing_time = time.time() - start_time
         
         # Save to history
-        history_data = HistoryCreate(
-            user_id=str(current_user.id),
-            feature_type="eli5",
-            input_data={
-                "topic": request.topic,
-                "complexity_level": request.complexity_level
-            },
-            output_data={
-                "original_topic": result["data"]["original_topic"],
-                "key_concepts_count": len(result["data"]["key_concepts"]),
-                "examples_count": len(result["data"]["examples"]),
-                "analogies_count": len(result["data"]["analogies"])
-            },
-            processing_time=processing_time
-        )
-        
-        history_collection = get_collection("history")
-        await history_collection.insert_one(history_data.dict(by_alias=True))
+        try:
+            from datetime import datetime
+            
+            history_doc = {
+                "user_id": current_user.firebase_uid,
+                "feature_type": "eli5",
+                "input_data": {
+                    "topic": request.topic,
+                    "complexity_level": request.complexity_level
+                },
+                "output_data": {
+                    "original_topic": result["data"]["original_topic"],
+                    "key_concepts_count": len(result["data"]["key_concepts"]),
+                    "examples_count": len(result["data"]["examples"]),
+                    "analogies_count": len(result["data"]["analogies"])
+                },
+                "processing_time": processing_time,
+                "status": "completed",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            history_collection = get_collection("history")
+            await history_collection.insert_one(history_doc)
+            logger.info(f"✅ ELI5 history saved")
+        except Exception as e:
+            logger.error(f"❌ Failed to save ELI5 history: {e}", exc_info=True)
         
         return ELI5SimplifyResponse(
             original_topic=result["data"]["original_topic"],

@@ -24,8 +24,9 @@ class Settings(BaseSettings):
     firebase_auth_domain: str = os.getenv("FIREBASE_AUTH_DOMAIN", "")
     firebase_project_id: str = os.getenv("FIREBASE_PROJECT_ID", "")
     
-    # Google Gemini API
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    # Hugging Face Configuration (replaces Google Gemini)
+    hf_api_key: str = os.getenv("HF_API_KEY", "")
+    hf_model_name: str = os.getenv("HF_MODEL_NAME", "facebook/bart-large-cnn")
     
     # File Upload
     upload_dir: str = "uploads"
@@ -37,4 +38,5 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
-settings = Settings() 
+settings = Settings()
+ 
