@@ -63,13 +63,17 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary-100 dark:bg-primary-900 rounded-full opacity-10 blur-3xl -mr-48 -mt-48"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary-100 dark:bg-secondary-900 rounded-full opacity-10 blur-3xl -ml-48 -mb-48"></div>
+
+      <div className="max-w-md w-full space-y-8 relative z-10">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleDarkMode}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -78,8 +82,8 @@ const Login = () => {
 
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
-            <Brain className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary-600 to-primary-700 shadow-lg">
+            <Brain className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
             {isLogin ? 'Welcome back' : 'Create your account'}
@@ -89,8 +93,8 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Form */}
-        <div className="card">
+        {/* Form Card */}
+        <div className="industrial-card p-8">
           <form className="space-y-6" onSubmit={handleEmailAuth}>
             {!isLogin && (
               <div>
@@ -171,7 +175,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary w-full flex justify-center items-center"
+                className="btn-primary w-full flex justify-center items-center shadow-md hover:shadow-lg"
               >
                 {loading ? (
                   <div className="loading-spinner"></div>
@@ -197,7 +201,7 @@ const Login = () => {
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800 disabled:opacity-50"
+                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-950 disabled:opacity-50 transition-all duration-200"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path

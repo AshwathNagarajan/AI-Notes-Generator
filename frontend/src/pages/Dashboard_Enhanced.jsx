@@ -89,6 +89,17 @@ const Dashboard = () => {
       bgColor: 'bg-pink-500/10',
       borderColor: 'border-pink-200 dark:border-pink-800',
       iconColor: 'text-pink-600 dark:text-pink-400'
+    },
+
+    {
+      name: 'ELI5 Simplifier',
+      description: 'Simplify complex topics for easy understanding',
+      icon: Lightbulb,
+      href: '/eli5',
+      color: 'from-amber-500 to-amber-600',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-200 dark:border-amber-800',
+      iconColor: 'text-amber-600 dark:text-amber-400'
     }
   ];
 
@@ -203,7 +214,7 @@ const Dashboard = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
               </span>
-              <span className="stat-badge">{features.length} Powerful Tools</span>
+              <span className="stat-badge">7 Powerful Tools</span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               AI-Powered Suite

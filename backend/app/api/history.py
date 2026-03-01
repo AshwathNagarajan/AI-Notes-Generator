@@ -135,7 +135,7 @@ async def get_history_summary(
             if item.get("processing_time"):
                 total_processing_time += item["processing_time"]
             
-            if item["status"] == "completed":
+            if item.get("status", "completed") == "completed":
                 successful_items += 1
         
         # Get recent activity (last 10 items)

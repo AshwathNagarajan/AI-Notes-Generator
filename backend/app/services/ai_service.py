@@ -796,6 +796,193 @@ Requirements:
                 "error": str(e)
             }
 
+    async def detect_knowledge_gaps(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect knowledge gaps and missing prerequisites for a topic."""
+        try:
+            if not context or not context.get("topic"):
+                raise ValueError("Topic cannot be empty")
+
+            topic = context.get("topic", "")
+            quiz_mistakes = context.get("quiz_mistakes", [])
+            explanation_requests = context.get("explanation_requests", [])
+            cognitive_profile = context.get("cognitive_profile", "general learner")
+
+            mistakes_text = ", ".join(quiz_mistakes) if quiz_mistakes else "None reported"
+            requests_text = ", ".join(explanation_requests) if explanation_requests else "None"
+
+            KNOWLEDGE_GAP_RADAR_PROMPT = f"""You are a Knowledge Gap Detection Engine.
+
+Given:
+1. Topic the user is studying: {topic}
+2. Their quiz mistakes: {mistakes_text}
+3. Their explanation requests: {requests_text}
+4. Their cognitive profile: {cognitive_profile}
+
+Your job:
+Identify missing prerequisite concepts that may block understanding.
+
+Return STRICT JSON ONLY:
+
+{{
+  "studied_topic": "{topic}",
+  "core_concepts_detected": ["concept1", "concept2", "concept3"],
+  "missing_prerequisites": [
+    {{
+      "concept": "string",
+      "why_missing": "short explanation",
+      "importance_level": 1-5
+    }}
+  ],
+  "recommended_micro_lessons": [
+    {{
+      "title": "string",
+      "focus": "string",
+      "estimated_time_minutes": 15
+    }}
+  ]
+}}
+
+Rules:
+- Only include logically required prerequisites
+- Rank importance_level based on dependency severity (5 = critical, 1 = nice to know)
+- Be concise
+- Output JSON ONLY, no markdown or additional text
+- Ensure JSON is valid and well-formed"""
+
+            if self.use_inference_api:
+                response_text = await self._call_inference_api(KNOWLEDGE_GAP_RADAR_PROMPT, max_tokens=1536)
+            else:
+                response_text = await self._generate_with_local_model(
+                    KNOWLEDGE_GAP_RADAR_PROMPT, max_length=1000, min_length=200
+                )
+
+            response_text = response_text.strip()
+
+            try:
+                # Handle possible markdown code blocks in response
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:-3]
+                elif response_text.startswith('```'):
+                    response_text = response_text[3:-3]
+
+                response_text = response_text.strip()
+                result = json.loads(response_text)
+
+                # Validate required fields
+                required_fields = ["studied_topic", "core_concepts_detected", "missing_prerequisites", "recommended_micro_lessons"]
+                for field in required_fields:
+                    if field not in result:
+                        raise ValueError(f"Missing required field: {field}")
+
+                # Validate structure
+                if not isinstance(result.get("core_concepts_detected"), list):
+                    result["core_concepts_detected"] = []
+                
+                if not isinstance(result.get("missing_prerequisites"), list):
+                    result["missing_prerequisites"] = []
+                
+                if not isinstance(result.get("recommended_micro_lessons"), list):
+                    result["recommended_micro_lessons"] = []
+
+                return {
+                    "success": True,
+                    "response": result
+                }
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse knowledge gap response: {response_text}")
+                raise ValueError(f"Invalid JSON format in AI response: {str(e)}")
+
+        except ValueError as e:
+            logger.error(f"Validation error in detect_knowledge_gaps: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error detecting knowledge gaps: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def generate_learning_hints(self, topic: str) -> Dict[str, Any]:
+        """Generate quick learning hints for a specific topic."""
+        try:
+            if not topic or not topic.strip():
+                raise ValueError("Topic cannot be empty")
+
+            prompt = f"""Generate 5-7 practical learning hints for someone studying: {topic}
+
+Focus on:
+- Common misconceptions to avoid
+- Key strategies for understanding
+- Related topics that will help
+- Practice tips
+
+Format as JSON:
+{{
+    "topic": "{topic}",
+    "hints": [
+        "Hint 1",
+        "Hint 2",
+        "Hint 3"
+    ]
+}}
+
+Respond with JSON only, no markdown."""
+
+            if self.use_inference_api:
+                response_text = await self._call_inference_api(prompt, max_tokens=512)
+            else:
+                response_text = await self._generate_with_local_model(
+                    prompt, max_length=400, min_length=100
+                )
+
+            response_text = response_text.strip()
+
+            try:
+                # Handle possible markdown code blocks in response
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:-3]
+                elif response_text.startswith('```'):
+                    response_text = response_text[3:-3]
+
+                response_text = response_text.strip()
+                result = json.loads(response_text)
+
+                if "hints" not in result:
+                    result["hints"] = []
+
+                if not isinstance(result["hints"], list):
+                    result["hints"] = [str(result["hints"])]
+
+                return {
+                    "success": True,
+                    "response": result.get("hints", [])
+                }
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse learning hints response: {response_text}")
+                # Return hints as text if JSON parsing fails
+                return {
+                    "success": True,
+                    "response": [response_text]
+                }
+
+        except ValueError as e:
+            logger.error(f"Validation error in generate_learning_hints: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error generating learning hints: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
 
 # Create a singleton instance
 ai_service = AIService()

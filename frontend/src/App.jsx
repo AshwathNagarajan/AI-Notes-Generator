@@ -14,6 +14,7 @@ import History from './pages/History';
 import Image from './pages/Image';
 import Profile from './pages/Profile';
 import Research from './pages/Research';
+import KnowledgeGapRadar from './pages/KnowledgeGapRadar';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -57,6 +58,7 @@ const AppRoutes = () => {
         <Route path="image" element={<Image />} />
         <Route path="history" element={<History />} />
         <Route path="research" element={<Research />} />
+        <Route path="knowledge-gap-radar" element={<KnowledgeGapRadar />} />
         <Route path="profile" element={<Profile />} />
       </Route>
     </Routes>

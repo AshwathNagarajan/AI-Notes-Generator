@@ -5,7 +5,7 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
-from app.api import auth, notes, voice, pdf, quiz, mindmap, eli5, history, image, export, research
+from app.api import auth, notes, voice, pdf, quiz, mindmap, eli5, history, image, export, research, chatbot, knowledge_gap
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
+app.include_router(chatbot.router, prefix="/api/chatbot", tags=["Chatbot"])
 app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF"])
 app.include_router(quiz.router, prefix="/api/quiz", tags=["Quiz"])
 app.include_router(mindmap.router, prefix="/api/mindmap", tags=["Mind Map"])
@@ -42,6 +43,7 @@ app.include_router(history.router, prefix="/api/history", tags=["History"])
 app.include_router(image.router, prefix="/api/image", tags=["Image Processing"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
 app.include_router(research.router, prefix="/api/research", tags=["Research"])
+app.include_router(knowledge_gap.router, prefix="/api/knowledge-gap", tags=["Knowledge Gap Radar"])
 
 # Serve static files (for uploaded images)
 uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
