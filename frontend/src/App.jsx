@@ -15,6 +15,8 @@ import Image from './pages/Image';
 import Profile from './pages/Profile';
 import Research from './pages/Research';
 import KnowledgeGapRadar from './pages/KnowledgeGapRadar';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -35,11 +37,31 @@ const ProtectedRoute = ({ children }) => {
   return <>{children}</>;
 };
 
+// Admin Protected Route Component
+const AdminProtectedRoute = ({ children }) => {
+  const adminToken = localStorage.getItem('adminToken');
+
+  if (!adminToken) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // App Routes Component
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminProtectedRoute>
+            <AdminDashboard />
+          </AdminProtectedRoute>
+        }
+      />
       <Route
         path="/"
         element={

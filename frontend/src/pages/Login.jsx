@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Brain, Mail, Lock, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { Brain, Mail, Lock, Eye, EyeOff, Sun, Moon, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -226,8 +226,8 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Toggle login/register */}
-          <div className="mt-6 text-center">
+          {/* Toggle login/register and Admin Link */}
+          <div className="mt-6 flex items-center justify-between">
             <button
               type="button"
               onClick={() => {
@@ -239,6 +239,16 @@ const Login = () => {
               className="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => navigate('/admin/login')}
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Admin access"
+            >
+              <Shield className="w-3 h-3" />
+              Admin
             </button>
           </div>
         </div>

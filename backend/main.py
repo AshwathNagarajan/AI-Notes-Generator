@@ -5,7 +5,7 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
-from app.api import auth, notes, voice, pdf, quiz, mindmap, eli5, history, image, export, research, chatbot, knowledge_gap
+from app.api import auth, notes, voice, pdf, quiz, mindmap, eli5, history, image, export, research, chatbot, knowledge_gap, admin
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 
@@ -32,6 +32,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
 app.include_router(chatbot.router, prefix="/api/chatbot", tags=["Chatbot"])
