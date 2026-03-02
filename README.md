@@ -265,10 +265,7 @@ CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 
 ### Admin Panel Setup
 1. Access admin panel: `http://localhost:5173/admin/login`
-2. Default credentials: 
-   - Username: `admin`
-   - Password: `thinkink3137`
-3. Dashboard available at: `/admin/dashboard`
+2. Dashboard available at: `/admin/dashboard`
 
 ## 📡 API Endpoints
 
