@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { File, Upload, FileText, Loader, Info, X, BookOpen } from 'lucide-react';
 import { pdfService } from '../services/pdfService';
 
 const PDF = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
   const [extractedText, setExtractedText] = useState(null);
@@ -13,7 +17,12 @@ const PDF = () => {
   const [maxLength, setMaxLength] = useState(500);
   const fileInputRef = useRef();
 
+  // Enforce login restriction - Cannot access PDF without authentication
   useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
     // Get supported formats when component mounts
     const getFormats = async () => {
       try {
@@ -24,7 +33,7 @@ const PDF = () => {
       }
     };
     getFormats();
-  }, []);
+  }, [user, navigate]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];

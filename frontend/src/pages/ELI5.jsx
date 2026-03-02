@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Lightbulb, BookOpen, Sparkles, Loader, RefreshCw, ArrowRight } from 'lucide-react';
 import { eli5Service } from '../services/eli5Service';
+import toast from 'react-hot-toast';
 
 // --- AIReader Component (inline) ---
 const AIReader = ({ text }) => {
@@ -96,6 +99,8 @@ const AIReader = ({ text }) => {
 // --- End AIReader Component ---
 
 const ELI5 = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [topic, setTopic] = useState('');
   const [complexityLevel, setComplexityLevel] = useState('basic');
   const [complexityLevels, setComplexityLevels] = useState([]);
@@ -103,7 +108,12 @@ const ELI5 = () => {
   const [error, setError] = useState('');
   const [explanation, setExplanation] = useState(null);
 
+  // Enforce login restriction - Cannot access ELI5 without authentication
   useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
     // Get complexity levels when component mounts
     const getLevels = async () => {
       try {
@@ -114,7 +124,7 @@ const ELI5 = () => {
       }
     };
     getLevels();
-  }, []);
+  }, [user, navigate]);
 
   const handleSimplify = async () => {
     if (!topic.trim()) {

@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Mic, Upload, MessageCircle, AlertCircle, Send, X } from 'lucide-react';
 import { voiceService } from '../services/voiceService';
 import chatbotService from '../services/chatbotService';
 import VoiceRecorder from '../components/VoiceRecorder';
 
 const Voice = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: 'Hello! I\'m your AI Chatbot Assistant. You can chat with me by typing, recording audio, or uploading files. How can I help you today?', timestamp: new Date() }
   ]);
@@ -15,6 +19,13 @@ const Voice = () => {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const fileInputRef = useRef();
   const messagesEndRef = useRef(null);
+
+  // Enforce login restriction - Cannot access voice without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

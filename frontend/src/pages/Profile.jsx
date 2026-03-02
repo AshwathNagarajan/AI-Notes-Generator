@@ -48,6 +48,13 @@ const Profile = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [prefsLoading, setPrefsLoading] = useState(false);
 
+  // Enforce login restriction - Cannot access profile without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
+
   useEffect(() => {
     if (user) {
       setFormData({

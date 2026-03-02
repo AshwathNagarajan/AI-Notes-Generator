@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Upload, 
   FileImage, 
@@ -19,6 +20,14 @@ import { format } from 'date-fns';
 
 const ImagePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Enforce login restriction - Cannot access image processing without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
   const fileInputRef = useRef(null);
   
   // State for file upload and processing

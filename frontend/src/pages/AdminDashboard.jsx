@@ -22,9 +22,10 @@ const AdminDashboard = () => {
 
   const adminToken = localStorage.getItem('adminToken');
 
+  // Enforce admin login restriction - Cannot access admin dashboard without admin token
   useEffect(() => {
     if (!adminToken) {
-      navigate('/admin/login');
+      navigate('/admin/login', { replace: true });
       return;
     }
     loadDashboardData();

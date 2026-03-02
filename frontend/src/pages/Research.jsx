@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Search, BookOpen, Copy, Download, Clock, 
   Users, Award, FileText, ArrowRight, Sparkles 
@@ -7,6 +9,15 @@ import { researchService } from '../services/researchService';
 import toast from 'react-hot-toast';
 
 const Research = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Enforce login restriction - Cannot access research without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
   const [topic, setTopic] = useState('');
   const [numPapers, setNumPapers] = useState(5);
   const [summarizationType, setSummarizationType] = useState('abstractive');

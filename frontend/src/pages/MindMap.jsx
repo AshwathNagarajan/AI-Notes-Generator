@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Brain, Network, Download, Loader, Plus, X, RefreshCw } from 'lucide-react';
 import DownloadPdfButton from '../components/DownloadPdfButton';
 import { mindmapService } from '../services/mindmapService';
+import toast from 'react-hot-toast';
 
 const MindMap = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Enforce login restriction - Cannot access mind map without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
   const [topic, setTopic] = useState('');
   const [subtopics, setSubtopics] = useState(['']);
   const [isGenerating, setIsGenerating] = useState(false);

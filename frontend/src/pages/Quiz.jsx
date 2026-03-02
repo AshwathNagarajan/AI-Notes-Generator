@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { HelpCircle, Plus, Play, Loader, Check, X, ChevronRight, RefreshCw } from 'lucide-react';
 import DownloadPdfButton from '../components/DownloadPdfButton';
 import { quizService } from '../services/quizService';
+import toast from 'react-hot-toast';
 
 const Quiz = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Enforce login restriction - Cannot access quiz without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
   const [text, setText] = useState('');
   const [numQuestions, setNumQuestions] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);

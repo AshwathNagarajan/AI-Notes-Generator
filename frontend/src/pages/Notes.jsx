@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { FileText, Copy, Download, Sparkles, Target, Clock, Volume2, Pause, Play, X, ArrowDown, CheckCircle, TrendingDown } from 'lucide-react';
 import { notesService } from '../services/notesService';
 import toast from 'react-hot-toast';
@@ -83,12 +85,21 @@ const AIReader = ({ text }) => {
 // ...existing code...
 
 const Notes = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [text, setText] = useState('');
   const [maxLength, setMaxLength] = useState(500);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [summarizationType, setSummarizationType] = useState('abstractive');
   const [summaryMode, setSummaryMode] = useState('narrative');
+
+  // Enforce login restriction - Cannot access notes without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSummarize = async () => {
     if (!text.trim()) {

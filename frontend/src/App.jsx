@@ -19,7 +19,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
 
-// Protected Route Component
+// Protected Route Component - Restricts access to dashboard and all user routes
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -31,6 +31,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
+  // Redirect to login if user is not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -38,10 +39,11 @@ const ProtectedRoute = ({ children }) => {
   return <>{children}</>;
 };
 
-// Admin Protected Route Component
+// Admin Protected Route Component - Restricts access to admin dashboard
 const AdminProtectedRoute = ({ children }) => {
   const adminToken = localStorage.getItem('adminToken');
 
+  // Redirect to admin login if admin token is not present
   if (!adminToken) {
     return <Navigate to="/admin/login" replace />;
   }
@@ -49,12 +51,20 @@ const AdminProtectedRoute = ({ children }) => {
   return <>{children}</>;
 };
 
+// Catch-all Route - Redirects unmatched routes to login
+const CatchAllRoute = () => {
+  return <Navigate to="/login" replace />;
+};
+
 // App Routes Component
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+
+      {/* Admin Protected Routes */}
       <Route
         path="/admin/dashboard"
         element={
@@ -71,6 +81,8 @@ const AppRoutes = () => {
           </AdminProtectedRoute>
         }
       />
+
+      {/* User Protected Routes - Dashboard and all sub-paths */}
       <Route
         path="/"
         element={
@@ -92,6 +104,9 @@ const AppRoutes = () => {
         <Route path="knowledge-gap-radar" element={<KnowledgeGapRadar />} />
         <Route path="profile" element={<Profile />} />
       </Route>
+
+      {/* Catch-all Route - Redirects any unmatched URLs to login */}
+      <Route path="*" element={<CatchAllRoute />} />
     </Routes>
   );
 };

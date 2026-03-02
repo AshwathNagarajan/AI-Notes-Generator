@@ -10,9 +10,10 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const adminToken = localStorage.getItem('adminToken');
 
+  // Enforce admin login restriction - Cannot access user management without admin token
   useEffect(() => {
     if (!adminToken) {
-      navigate('/admin/login');
+      navigate('/admin/login', { replace: true });
       return;
     }
     loadUsers();

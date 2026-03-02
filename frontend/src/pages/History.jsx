@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { History as HistoryIcon, Trash2, Eye, X, RefreshCw } from 'lucide-react';
 import { historyService } from '../services/historyService';
 import { format } from 'date-fns';
@@ -6,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const HistoryPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +17,13 @@ const HistoryPage = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+
+  // Enforce login restriction - Cannot access history without authentication
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
 
   const loadHistory = useCallback(async (feature_type = '') => {
     try {
