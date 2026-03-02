@@ -9,11 +9,9 @@ import Voice from './pages/Voice';
 import PDF from './pages/PDF';
 import Quiz from './pages/Quiz';
 import MindMap from './pages/MindMap';
-import ELI5 from './pages/ELI5';
 import History from './pages/History';
 import Image from './pages/Image';
 import Profile from './pages/Profile';
-import Research from './pages/Research';
 import KnowledgeGapRadar from './pages/KnowledgeGapRadar';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -97,10 +95,8 @@ const AppRoutes = () => {
         <Route path="pdf" element={<PDF />} />
         <Route path="quiz" element={<Quiz />} />
         <Route path="mindmap" element={<MindMap />} />
-        <Route path="eli5" element={<ELI5 />} />
         <Route path="image" element={<Image />} />
         <Route path="history" element={<History />} />
-        <Route path="research" element={<Research />} />
         <Route path="knowledge-gap-radar" element={<KnowledgeGapRadar />} />
         <Route path="profile" element={<Profile />} />
       </Route>

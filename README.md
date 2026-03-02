@@ -1,6 +1,6 @@
 # ThinkInk AI - Intelligent Educational Assistant
 
-A comprehensive full-stack application that empowers students with AI-driven learning tools. ThinkInk AI helps you automatically summarize notes, transcribe voice recordings, extract text from PDFs, generate quizzes, create mind maps, simplify complex topics, and analyze your learning patterns with an integrated admin dashboard.
+A comprehensive full-stack application that empowers students with AI-driven learning tools. ThinkInk AI helps you automatically summarize notes, transcribe voice recordings, extract text from PDFs, generate quizzes, create mind maps, and analyze your learning patterns with an integrated admin dashboard.
 
 ## 🎯 Key Features
 
@@ -14,8 +14,7 @@ A comprehensive full-stack application that empowers students with AI-driven lea
 - 📸 **Image Text Extraction**: OCR-based text extraction from images and automatic summarization
 - ❓ **Quiz Generation**: Automatically create practice quizzes with multiple difficulty levels
 - 🧠 **Mind Map Creation**: Generate interactive visual mind maps for conceptual understanding
-- 🔍 **Research Paper Search**: Search and retrieve summaries from academic databases
-- 📥 **PDF Export**: Export notes, summaries, and analyses as professional PDF documents
+-  **PDF Export**: Export notes, summaries, and analyses as professional PDF documents
 - 📊 **User History**: Complete activity tracking with statistics and performance metrics
 - 🎨 **Professional UI**: Industrial-grade React interface with premium design
 - 🌙 **Complete Dark Mode**: Full dark theme with automatic system preference detection
@@ -334,17 +333,6 @@ POST   /api/knowledge-gap/analyze   - Analyze learning gaps
 GET    /api/knowledge-gap/report    - Get gap analysis report
 ```
 
-### ELI5 (Explain Like I'm 5)
-```
-POST   /api/eli5/simplify           - Simplify complex topics
-```
-
-### Research Paper Search
-```
-POST   /api/research/search         - Search academic papers
-GET    /api/research/{id}           - Get paper summary
-```
-
 ### Chatbot
 ```
 POST   /api/chatbot/chat            - Send message to chatbot
@@ -441,14 +429,6 @@ Extract and process documents:
 - **Images**: OCR-based text extraction
 - **Automatic Summarization**: Get insights from documents instantly
 - **Batch Processing**: Handle multiple files efficiently
-
-### Research Paper Search
-Find and summarize academic papers:
-- Search scholarly databases
-- Automatic summarization of papers
-- Citation extraction
-- Learn from latest research
-Perfect for thesis research and staying updated.
 
 ### Activity History
 Complete tracking system with:
