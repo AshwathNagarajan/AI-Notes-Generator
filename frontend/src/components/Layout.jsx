@@ -27,7 +27,7 @@ import ChatbotModal from './ChatbotModal';
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +40,6 @@ const Layout = () => {
     { name: 'Image', href: '/image', icon: ImageIcon },
     { name: 'Quiz', href: '/quiz', icon: HelpCircle },
     { name: 'Mind Map', href: '/mindmap', icon: Brain },
-    //{ name: 'ELI5', href: '/eli5', icon: Lightbulb },
     { name: 'Knowledge Gap', href: '/knowledge-gap-radar', icon: Radar },
     { name: 'History', href: '/history', icon: History },
     { name: 'Profile', href: '/profile', icon: User },
@@ -197,7 +196,7 @@ const Layout = () => {
           <div className="flex flex-1 items-center">
             <h1 className="text-base font-bold text-gray-900 dark:text-gray-100">AI Notes Summarizer</h1>
           </div>
-          <div className="flex items-center gap-x-3">
+          <div className="flex items-center gap-x-4">
             <button
               onClick={toggleDarkMode}
               className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -205,6 +204,17 @@ const Layout = () => {
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-primary-500 transition-colors">
+              {user?.photo_url ? (
+                <img 
+                  src={user.photo_url} 
+                  alt={user.display_name || 'Profile'} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
+            </div>
           </div>
         </div>
 

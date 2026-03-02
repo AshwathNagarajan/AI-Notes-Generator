@@ -17,6 +17,7 @@ import Research from './pages/Research';
 import KnowledgeGapRadar from './pages/KnowledgeGapRadar';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import UserManagement from './pages/UserManagement';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -59,6 +60,14 @@ const AppRoutes = () => {
         element={
           <AdminProtectedRoute>
             <AdminDashboard />
+          </AdminProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AdminProtectedRoute>
+            <UserManagement />
           </AdminProtectedRoute>
         }
       />

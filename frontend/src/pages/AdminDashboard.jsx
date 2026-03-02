@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Users, Activity, TrendingUp, LogOut, Search, ChevronRight, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+import UserInfoModal from '../components/UserInfoModal';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userActivities, setUserActivities] = useState([]);
+  const [loadingUserActivities, setLoadingUserActivities] = useState(false);
+  const [hoveredUserId, setHoveredUserId] = useState(null);
+  const [modalUser, setModalUser] = useState(null);
 
   const adminToken = localStorage.getItem('adminToken');
 
@@ -72,15 +76,44 @@ const AdminDashboard = () => {
 
   const handleViewUserActivities = async (userId) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/user/${userId}/activities?admin_token=${adminToken}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedUser(userId);
-        setUserActivities(data.activities);
+      if (!userId) {
+        toast.error('User ID not found');
+        return;
       }
+
+      setLoadingUserActivities(true);
+      const res = await fetch(`http://localhost:8000/api/admin/user/${userId}/activities?admin_token=${adminToken}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error('API Error:', data);
+        toast.error(data.detail || 'Failed to load user activities');
+        return;
+      }
+
+      setSelectedUser(userId);
+      setUserActivities(data.activities || []);
+      setActiveTab('activities');
+      setModalUser(null);
+      toast.success('User activities loaded');
     } catch (error) {
-      toast.error('Failed to load user activities');
+      console.error('Error loading user activities:', error);
+      toast.error('Failed to load user activities: ' + error.message);
+    } finally {
+      setLoadingUserActivities(false);
     }
+  };
+
+  const handleModalOpen = (user) => {
+    setModalUser(user);
+  };
+
+  const handleModalClose = () => {
+    setModalUser(null);
+  };
+
+  const handleModalViewActivities = (userId) => {
+    handleViewUserActivities(userId);
   };
 
   const filteredUsers = users.filter(user =>
@@ -88,7 +121,7 @@ const AdminDashboard = () => {
     user.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+  const COLORS = ['#3b82f6', '#44bcef', '#7083df', '#0b1bf5', '#0677db', '#123c9f'];
 
   const chartData = analytics?.feature_usage ? Object.entries(analytics.feature_usage).map(([key, value]) => ({
     name: key,
@@ -241,7 +274,11 @@ const AdminDashboard = () => {
                       </thead>
                       <tbody>
                         {filteredUsers.map((user, idx) => (
-                          <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <tr
+                            key={idx}
+                            onClick={() => handleModalOpen(user)}
+                            className="border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                          >
                             <td className="px-4 py-3 text-white">{user.display_name || 'N/A'}</td>
                             <td className="px-4 py-3 text-gray-300">{user.email}</td>
                             <td className="px-4 py-3 text-gray-400 text-sm">
@@ -250,14 +287,61 @@ const AdminDashboard = () => {
                             <td className="px-4 py-3 text-gray-400 text-sm">
                               {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 relative group">
                               <button
                                 onClick={() => handleViewUserActivities(user._id || user.id)}
-                                className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                onMouseEnter={() => setHoveredUserId(user._id || user.id)}
+                                onMouseLeave={() => setHoveredUserId(null)}
+                                disabled={loadingUserActivities}
+                                className="text-blue-400 hover:text-blue-300 flex items-center gap-1 px-3 py-1 rounded hover:bg-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                               >
-                                <Eye className="w-4 h-4" />
-                                View
+                                {loadingUserActivities ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                                    Loading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-4 h-4" />
+                                    View
+                                  </>
+                                )}
                               </button>
+
+                              {/* Hover Card */}
+                              {hoveredUserId === (user._id || user.id) && (
+                                <div className="absolute bottom-full left-0 mb-2 z-50 animate-fade-in">
+                                  <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-lg shadow-2xl p-4 w-64 backdrop-blur-xl">
+                                    <div className="space-y-3">
+                                      <div>
+                                        <p className="text-gray-400 text-xs uppercase tracking-wider">Name</p>
+                                        <p className="text-white font-semibold">{user.display_name || 'N/A'}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-gray-400 text-xs uppercase tracking-wider">Email</p>
+                                        <p className="text-blue-300 text-sm break-all">{user.email}</p>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <p className="text-gray-400 text-xs uppercase tracking-wider">Joined</p>
+                                          <p className="text-white text-sm">{new Date(user.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-400 text-xs uppercase tracking-wider">Last Login</p>
+                                          <p className="text-white text-sm">{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</p>
+                                        </div>
+                                      </div>
+                                      {user.activity_count !== undefined && (
+                                        <div className="pt-2 border-t border-white/10">
+                                          <p className="text-gray-400 text-xs uppercase tracking-wider">Activities</p>
+                                          <p className="text-blue-400 font-semibold">{user.activity_count}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="absolute bottom-full left-4 w-2 h-2 bg-gradient-to-br from-gray-900 to-gray-800 border-l border-t border-white/20 transform rotate-45 -mb-1"></div>
+                                  </div>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -395,6 +479,15 @@ const AdminDashboard = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* User Info Modal */}
+        {modalUser && (
+          <UserInfoModal
+            user={modalUser}
+            onClose={handleModalClose}
+            onViewActivities={handleModalViewActivities}
+          />
         )}
       </div>
     </div>
