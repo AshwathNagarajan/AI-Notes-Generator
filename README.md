@@ -6,13 +6,12 @@ A comprehensive full-stack application that empowers students with AI-driven lea
 
 - 🔐 **Authentication**: Firebase Authentication with Google sign-in and email/password
 - 📝 **Notes Summarization**: AI-powered summarization of long text notes
-- 🎤 **Voice Transcription**: Convert voice recordings to text with speech-to-text technology
-- 😊 **Voice Emotion Analysis**: Analyze emotional tone from voice recordings with AI-powered suggestions
+- 🎤 **ChatBot**: Integrated chatbot for hands-on doubt clarification
+- 😊 **Knowledge Gap**: Analysis of the topic and misunderstanding of the user and provide learning tips
 - 📄 **PDF Processing**: Extract and process text from PDF documents
 - 📸 **Image Processing**: Extract text from images using OCR
 - ❓ **Quiz Generation**: Automatically generate quizzes from study materials
 - 🧠 **Mind Map Creation**: Generate visual mind maps for complex topics
-- 💡 **ELI5 (Explain Like I'm 5)**: Simplify complex topics for better understanding
 - 🔍 **Research Paper Search**: Search and summarize academic research papers
 - 📥 **Export**: Export notes and content as PDF documents
 - 📊 **User History**: Store and retrieve all user interactions and AI outputs
@@ -34,7 +33,7 @@ A comprehensive full-stack application that empowers students with AI-driven lea
 
 ### Backend
 - **FastAPI** (Python) for REST API
-- **Google Gemini AI** for AI-powered tasks
+- **Mistrel 7B** for AI integration 
 - **SpeechRecognition** for voice processing
 - **PyTesseract** for OCR (Optical Character Recognition)
 - **PyPDF2 & pdfplumber** for PDF processing
@@ -45,6 +44,7 @@ A comprehensive full-stack application that empowers students with AI-driven lea
 - **Scholarly** for research paper search
 - **WeasyPrint** for PDF export functionality
 - **Transformers** for advanced NLP tasks
+- **FFMPEG** for voice transcription
 
 ## Project Structure
 
@@ -117,15 +117,15 @@ AI-Notes-Generator-Hackelite/
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/ai-notes-generator-hackelite.git
-cd ai-notes-generator-hackelite
+git clone https://github.com/yourusername/ai-notes-generator.git
+cd ai-notes-generator
 ```
 
 #### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 Frontend will start on `http://localhost:3000`
 
@@ -160,7 +160,7 @@ DATABASE_NAME=ai_notes_generator
 FIREBASE_API_KEY=your_firebase_api_key
 FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 FIREBASE_PROJECT_ID=your_project_id
-GEMINI_API_KEY=your_gemini_api_key
+HUGGING_FACE_API=your_huggingface_api_key
 ENVIRONMENT=development
 DEBUG=true
 ```
@@ -240,8 +240,6 @@ Search through academic databases to find relevant research papers and get AI-ge
 ### PDF & Image Processing
 Extract text from PDFs or images (OCR) for further processing, summarization, or analysis.
 
-### ELI5 Explanations
-Get complex topics explained in simple, easy-to-understand language suitable for beginners.
 
 ## Development Guide
 
@@ -337,7 +335,7 @@ For questions, issues, or suggestions:
 ## Acknowledgments
 
 - Built with FastAPI, React, and MongoDB
-- AI powered by Google Gemini
+- AI powered by Meta Mistral 7B
 - UI components from Lucide React and Tailwind CSS
 - Voice processing with Python SpeechRecognition
 - PDF processing with PyPDF2 and pdfplumber
