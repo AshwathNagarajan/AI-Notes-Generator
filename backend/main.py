@@ -5,7 +5,7 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
-from app.api import auth, notes, voice, pdf, quiz, mindmap, history, image, export, chatbot, knowledge_gap, admin
+from app.api import auth, notes, voice, pdf, quiz, mindmap, history, image, export, chatbot, knowledge_gap, learning_twin, admin
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 
@@ -43,6 +43,7 @@ app.include_router(history.router, prefix="/api/history", tags=["History"])
 app.include_router(image.router, prefix="/api/image", tags=["Image Processing"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
 app.include_router(knowledge_gap.router, prefix="/api/knowledge-gap", tags=["Knowledge Gap Radar"])
+app.include_router(learning_twin.router, prefix="/api/learning-twin", tags=["Learning Twin"])
 
 # Serve static files (for uploaded images)
 uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")

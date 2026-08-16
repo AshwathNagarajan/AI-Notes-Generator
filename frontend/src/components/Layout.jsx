@@ -9,7 +9,7 @@ import {
   File, 
   HelpCircle, 
   Brain, 
-  Lightbulb, 
+  BrainCircuit,
   Image as ImageIcon,
   History, 
   User, 
@@ -41,6 +41,7 @@ const Layout = () => {
     { name: 'Quiz', href: '/quiz', icon: HelpCircle },
     { name: 'Mind Map', href: '/mindmap', icon: Brain },
     { name: 'Knowledge Gap', href: '/knowledge-gap-radar', icon: Radar },
+    { name: 'Learning Twin', href: '/learning-twin', icon: BrainCircuit },
     { name: 'History', href: '/history', icon: History },
     { name: 'Profile', href: '/profile', icon: User },
   ];
@@ -61,6 +62,22 @@ const Layout = () => {
     }
     return location.pathname.startsWith(href);
   };
+
+  const getNavItemClass = (isActive) => (
+    `group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative ${
+      isActive
+        ? 'bg-gradient-to-r from-gray-950 via-primary-800 to-gray-900 text-white shadow-lg shadow-gray-900/20 dark:from-primary-700 dark:via-primary-800 dark:to-gray-900 dark:shadow-primary-950/30'
+        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-950 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
+    }`
+  );
+
+  const getNavIconClass = (isActive) => (
+    `mr-3 h-5 w-5 flex-shrink-0 transition-colors ${
+      isActive
+        ? 'text-white'
+        : 'text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white'
+    }`
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -90,15 +107,9 @@ const Layout = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative ${
-                    isActive
-                      ? 'bg-primary-600 text-white shadow-md'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                  }`}
+                  className={getNavItemClass(isActive)}
                 >
-                  <Icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors ${
-                    isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                  }`} />
+                  <Icon className={getNavIconClass(isActive)} />
                   <span className="flex-1">{item.name}</span>
                   {isActive && <ChevronRight className="h-4 w-4 text-white ml-auto" />}
                 </a>
@@ -138,15 +149,9 @@ const Layout = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative ${
-                    isActive
-                      ? 'bg-primary-600 text-white shadow-md'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                  }`}
+                  className={getNavItemClass(isActive)}
                 >
-                  <Icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors ${
-                    isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                  }`} />
+                  <Icon className={getNavIconClass(isActive)} />
                   <span className="flex-1">{item.name}</span>
                   {isActive && <ChevronRight className="h-4 w-4 text-white ml-auto" />}
                 </a>

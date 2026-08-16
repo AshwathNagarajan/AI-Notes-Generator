@@ -906,6 +906,134 @@ Rules:
                 "error": str(e)
             }
 
+    async def build_learning_twin(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a first-pass learner model from the user's own evidence."""
+        try:
+            if not context or not context.get("topic"):
+                raise ValueError("Topic cannot be empty")
+
+            topic = context.get("topic", "").strip()
+            learner_explanation = context.get("learner_explanation", "").strip()
+            quiz_mistakes = context.get("quiz_mistakes", [])
+            doubts = context.get("doubts", [])
+            learning_style = context.get("learning_style", "general learner")
+
+            mistakes_text = "\n".join(f"- {item}" for item in quiz_mistakes) if quiz_mistakes else "- None provided"
+            doubts_text = "\n".join(f"- {item}" for item in doubts) if doubts else "- None provided"
+            explanation_text = learner_explanation or "No self-explanation provided."
+
+            prompt = f"""You are MirrorMind, a Learning Twin builder.
+
+Create a private learner model from the evidence below. Your job is not to teach the whole topic.
+Your job is to infer how this student currently understands it, where that understanding may break, and what to do next.
+
+Topic:
+{topic}
+
+Student's own explanation:
+{explanation_text}
+
+Quiz mistakes:
+{mistakes_text}
+
+Doubts or questions:
+{doubts_text}
+
+Preferred learning style:
+{learning_style}
+
+Return STRICT JSON ONLY in this exact shape:
+{{
+  "twin_name": "short name for this learner model",
+  "topic": "{topic}",
+  "current_understanding": {{
+    "summary": "2-3 sentence summary of how the learner seems to understand the topic",
+    "confidence_score": 0-100,
+    "evidence": ["specific clue from input", "specific clue from input"]
+  }},
+  "likely_misconceptions": [
+    {{
+      "misconception": "what the learner may believe incorrectly",
+      "why_it_matters": "why this blocks understanding",
+      "correction": "the corrected idea in simple terms"
+    }}
+  ],
+  "predicted_failure_points": [
+    {{
+      "scenario": "where the learner may fail or hesitate",
+      "twin_response": "what the learner twin would likely say or do",
+      "better_response": "what stronger understanding would look like"
+    }}
+  ],
+  "personalized_correction_path": [
+    {{
+      "step": "short action title",
+      "purpose": "what this fixes",
+      "practice_prompt": "one concrete thing the learner should answer or try"
+    }}
+  ],
+  "teach_back_prompt": "one prompt asking the learner to explain the topic again"
+}}
+
+Rules:
+- Use only the evidence provided and careful inference.
+- Be specific, concise, and non-judgmental.
+- If evidence is thin, say so in the summary and lower the confidence_score.
+- Return valid JSON only. No markdown."""
+
+            if self.use_inference_api:
+                response_text = await self._call_inference_api(prompt, max_tokens=2048)
+            else:
+                response_text = await self._generate_with_local_model(
+                    prompt, max_length=1800, min_length=400
+                )
+
+            response_text = response_text.strip()
+
+            try:
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:-3]
+                elif response_text.startswith('```'):
+                    response_text = response_text[3:-3]
+
+                response_text = response_text.strip()
+                result = json.loads(response_text)
+
+                required_fields = [
+                    "twin_name",
+                    "topic",
+                    "current_understanding",
+                    "likely_misconceptions",
+                    "predicted_failure_points",
+                    "personalized_correction_path",
+                    "teach_back_prompt",
+                ]
+                for field in required_fields:
+                    if field not in result:
+                        raise ValueError(f"Missing required field: {field}")
+
+                return {
+                    "success": True,
+                    "data": result
+                }
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse learning twin response: {response_text}")
+                raise ValueError(f"Invalid JSON format in AI response: {str(e)}")
+
+        except ValueError as e:
+            logger.error(f"Validation error in build_learning_twin: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error building learning twin: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
     async def generate_learning_hints(self, topic: str) -> Dict[str, Any]:
         """Generate quick learning hints for a specific topic."""
         try:

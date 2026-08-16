@@ -13,6 +13,7 @@ import History from './pages/History';
 import Image from './pages/Image';
 import Profile from './pages/Profile';
 import KnowledgeGapRadar from './pages/KnowledgeGapRadar';
+import LearningTwin from './pages/LearningTwin';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
@@ -98,6 +99,7 @@ const AppRoutes = () => {
         <Route path="image" element={<Image />} />
         <Route path="history" element={<History />} />
         <Route path="knowledge-gap-radar" element={<KnowledgeGapRadar />} />
+        <Route path="learning-twin" element={<LearningTwin />} />
         <Route path="profile" element={<Profile />} />
       </Route>
 

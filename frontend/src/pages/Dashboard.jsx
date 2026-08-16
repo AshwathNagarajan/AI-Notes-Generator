@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   HelpCircle, 
   Brain, 
+  BrainCircuit,
   Lightbulb, 
   TrendingUp, 
   Clock,
@@ -97,6 +98,17 @@ const Dashboard = () => {
       bgColor: 'bg-pink-500/10',
       borderColor: 'border-pink-200 dark:border-pink-800',
       iconColor: 'text-pink-600 dark:text-pink-400'
+    },
+
+    {
+      name: 'Learning Twin',
+      description: 'Model your current understanding and reveal likely misconceptions',
+      icon: BrainCircuit,
+      href: '/learning-twin',
+      color: 'from-cyan-500 to-cyan-600',
+      bgColor: 'bg-cyan-500/10',
+      borderColor: 'border-cyan-200 dark:border-cyan-800',
+      iconColor: 'text-cyan-600 dark:text-cyan-400'
     }
   ];
 
